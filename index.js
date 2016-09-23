@@ -76,7 +76,7 @@ class MonthBody extends Component {
                 [startDay.format(displayFormat)]: {
                     date: new Date(startDay.startOf('day').valueOf()),
                     dateText: startDay.date(),
-                    disabled: startDay.isBefore(moment().subtract(1, 'day')),
+                    //disabled: startDay.isBefore(moment().subtract(1, 'day')),
                 }
             }
             startDay = startDay.add(1, 'day')
