@@ -12,7 +12,7 @@ class CalendarHeader extends Component {
             <View style={ [styles.header] }>
                 {week.map((day, i) =>
                     <View key={i} style={ [styles.headerCell] }>
-                        <Text style={ [styles.headerText, {color: i === 0 || i === 6 ? '#ff3c30' : '#000' }] }>
+                        <Text style={ [styles.headerText, {color: '#fff' }] }>
                             {day}
                         </Text>
                     </View>
@@ -43,15 +43,15 @@ class MonthBodyCell extends Component {
             <TouchableOpacity style={styles.monthBodyCell} activeOpacity={1} onPress={!dayInfo.disabled && onPress ? () => onPress(dayInfo) : null}>
                 <View style={cellDateStyle}>
                     <Text style={cellDateTextStyle}>
-                        {dayInfo.holiday ? dayInfo.holiday : dayInfo.dateText}
+                        {dayInfo.note ? dayInfo.note : dayInfo.dateText}
                     </Text>
                 </View>
                 {
-                    dayInfo.note && dayInfo.note !== ''
+                    dayInfo.holiday && dayInfo.holiday !== ''
                     ?
-                    <View style={[styles.monthBodyCellNote]}>
-                        <Text style={[styles.text, styles.monthBodyCellNoteText]}>
-                            {dayInfo.note}
+                    <View style={[styles.monthBodyCellholiday]}>
+                        <Text style={[styles.text, styles.monthBodyCellHolidayText]}>
+                            {dayInfo.holiday}
                         </Text>
                     </View>
                     : null
@@ -63,7 +63,7 @@ class MonthBodyCell extends Component {
 
 class MonthBody extends Component {
     render() {
-        const {displayFormat, year, month, holiday, active, note, onPress} = this.props
+        const {displayFormat, year, month, note, active, holiday, onPress} = this.props
 
         // generate day cell
         let startDay = moment().year(year).month(month).date(1),
@@ -76,16 +76,16 @@ class MonthBody extends Component {
                 [startDay.format(displayFormat)]: {
                     date: new Date(startDay.startOf('day').valueOf()),
                     dateText: startDay.date(),
-                    //disabled: startDay.isBefore(moment().subtract(1, 'day')),
+                    disabled: startDay.isAfter(moment().subtract(0, 'day')),
                 }
             }
             startDay = startDay.add(1, 'day')
         }
 
         // add addFeatures
-        this.addFeature('holiday', holiday, dayCells)
-        this.addFeature('active', active, dayCells)
         this.addFeature('note', note, dayCells)
+        this.addFeature('active', active, dayCells)
+        this.addFeature('holiday', holiday, dayCells)
 
         // generate blanks
         const blanksNum = moment().year(year).month(month).date(1).day()
@@ -126,6 +126,8 @@ class Calendar extends Component {
         super(props)
 
         this.state = {
+            isAddingMonth: false,
+            count: 0,
             dataSource: new ListView.DataSource({
                 rowHasChanged: (r1, r2) => r1 !== r2,
                 sectionHeaderHasChanged: (s1, s2) => s1 !== s2
@@ -169,6 +171,7 @@ class Calendar extends Component {
                     dataSource={this.state.dataSource}
                     renderSectionHeader={this.renderSectionHeader}
                     renderRow={this.renderRow.bind(this)}
+                    onScroll={this.listviewScroll.bind(this)}
                 />
             </View>
         )
@@ -192,20 +195,50 @@ class Calendar extends Component {
             </View>
         )
     }
+
+    // show last month when scrolling up --author by syt
+    listviewScroll(e) {
+        if (e.nativeEvent.contentOffset.y >= 0) this.state.isAddingMonth = false
+        else if (!this.state.isAddingMonth) {
+            this.state.isAddingMonth = true
+            let {startTime, endTime} = this.props
+            startTime = moment.isMoment(startTime) ? startTime : moment(startTime)
+            endTime = moment.isMoment(endTime) ? endTime : moment(endTime)
+            startTime = startTime.subtract(++this.state.count, 'month');
+
+            // generate months
+            let months = {}
+
+            while(endTime.isSameOrAfter(startTime, 'day')){
+                const year = startTime.year(),
+                    month = startTime.month(),
+                    date = year + '年' + (month + 1) + '月'
+
+                months[date] = {
+                    date: year + "," + month
+                }
+                startTime = startTime.add(1, 'month')
+            }
+
+            this.setState({
+                dataSource: this.state.dataSource.cloneWithRowsAndSections(months),
+                loaded: true
+            })
+        }
+    }
 }
 Calendar.defaultProps = {
     startTime: moment(),
-    endTime: moment().add(5, 'month')
+    endTime: moment()
 }
 
 const sidePadding = 5,
-    DateCellSize = (Dimensions.get('window').width - (sidePadding * 2 + 1)) / 7
+    DateCellSize = (Dimensions.get('window').width - (sidePadding * 2 + 1)) / 7,
+    headerColor = '#83CAD6'
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingLeft: sidePadding,
-        paddingRight: sidePadding,
     },
 
     // common
@@ -220,8 +253,8 @@ const styles = StyleSheet.create({
     // header
     header: {
         flexDirection: 'row',
-        height: 15,
-        backgroundColor: '#fff',
+        height: 30,
+        backgroundColor: headerColor,
     },
     headerCell: {
         flex: 1,
@@ -238,12 +271,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
-        borderBottomWidth: 1 / PixelRatio.get(),
-        borderBottomColor: '#dce1e6',
-        backgroundColor: '#fff',
+        backgroundColor: headerColor,
     },
     monthHeaderText: {
         fontSize: 18,
+        color: '#fff'
     },
 
     // month body
@@ -251,6 +283,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         overflow: 'hidden',
+        paddingLeft: sidePadding,
+        paddingRight: sidePadding,
+        backgroundColor: '#D6E8F0'
     },
 
     // month body cell
@@ -266,12 +301,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    monthBodyCellNote: {
+        monthBodyCellHoliday: {
         height: 15,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    monthBodyCellNoteText: {
+    monthBodyCellHolidayText: {
         color: '#1ba9ba',
         fontSize: 12,
     },
