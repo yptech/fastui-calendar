@@ -1,7 +1,7 @@
 'use strict';
 
 import React, {Component} from 'react';
-import {StyleSheet, Text, View, PixelRatio, Dimensions, TouchableOpacity, ListView} from 'react-native';
+import {StyleSheet, Text, View, PixelRatio, Dimensions, TouchableOpacity, ListView, Image} from 'react-native';
 import moment from 'moment';
 
 class CalendarHeader extends Component {
@@ -31,6 +31,7 @@ class MonthBodyCell extends Component {
             dayInfo.active === 'fill'
             ? styles.activeMonthBodyCellDate
             : dayInfo.active === 'border' ? styles.activeMonthBodyCellDateBorder : null,
+            dayInfo.bgImg ? {width: 32} : null
         ]
 
         const cellDateTextStyle = [
@@ -41,11 +42,15 @@ class MonthBodyCell extends Component {
 
         return (
             <TouchableOpacity style={styles.monthBodyCell} activeOpacity={1} onPress={!dayInfo.disabled && onPress ? () => onPress(dayInfo) : null}>
-                <View style={cellDateStyle}>
-                    <Text style={cellDateTextStyle}>
+                <Image
+                    resizeMode={'stretch'}
+                    source={dayInfo.bgImg}
+                    style={cellDateStyle}
+                >
+                    <Text style={cellDateTextStyle, {color: dayInfo.bgImg ? '#1ba9ba' : null, fontWeight: dayInfo.bgImg ? 'bold' : 'normal'}}>
                         {dayInfo.note ? dayInfo.note : dayInfo.dateText}
                     </Text>
-                </View>
+                </Image>
                 {
                     dayInfo.holiday && dayInfo.holiday !== ''
                     ?
@@ -63,7 +68,7 @@ class MonthBodyCell extends Component {
 
 class MonthBody extends Component {
     render() {
-        const {displayFormat, year, month, note, active, holiday, onPress} = this.props
+        const {displayFormat, year, month, note, active, holiday, bgImg, onPress} = this.props
 
         // generate day cell
         let startDay = moment().year(year).month(month).date(1),
@@ -86,6 +91,7 @@ class MonthBody extends Component {
         this.addFeature('note', note, dayCells)
         this.addFeature('active', active, dayCells)
         this.addFeature('holiday', holiday, dayCells)
+        this.addFeature('bgImg', bgImg, dayCells);
 
         // generate blanks
         const blanksNum = moment().year(year).month(month).date(1).day()
@@ -300,6 +306,7 @@ const styles = StyleSheet.create({
         height: 32,
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0)',
     },
         monthBodyCellHoliday: {
         height: 15,
